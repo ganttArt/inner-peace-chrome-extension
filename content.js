@@ -28,3 +28,29 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         toggleAsideVisibility(message.value);
     }
 });
+
+// Set up a MutationObserver to watch for changes in the page's DOM (e.g., when navigating to a new section)
+const observer = new MutationObserver(() => {
+    chrome.storage.sync.get(['showFeed', 'showAside'], (result) => {
+        const showFeed = result.showFeed !== undefined ? result.showFeed : false;
+        const showAside = result.showAside !== undefined ? result.showAside : false;
+        toggleFeedVisibility(showFeed);
+        toggleAsideVisibility(showAside);
+    });
+});
+
+// Configure the observer to watch for changes in the body element
+observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+});
+
+// Optionally, you can also observe changes in the URL using the `popstate` event (if LinkedIn uses SPA navigation).
+window.addEventListener('popstate', () => {
+    chrome.storage.sync.get(['showFeed', 'showAside'], (result) => {
+        const showFeed = result.showFeed !== undefined ? result.showFeed : false;
+        const showAside = result.showAside !== undefined ? result.showAside : false;
+        toggleFeedVisibility(showFeed);
+        toggleAsideVisibility(showAside);
+    });
+});
