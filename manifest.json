@@ -1,0 +1,27 @@
+
+{
+  "manifest_version": 3,
+  "name": "InnerPeace",
+  "version": "1.0",
+  "description": "Toggle the visibility of the LinkedIn newsfeed to maintain your InnerPeace.",
+  "permissions": ["storage", "scripting", "activeTab"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://www.linkedin.com/*"],
+      "js": ["content.js"]
+    }
+  ],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
