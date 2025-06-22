@@ -31,6 +31,7 @@ jobs:
       - name: Install Playwright browsers
         run: |
           # Install Playwright with system dependencies (recommended approach)
+          # Only install Chromium since this is a Chrome extension
           npx playwright install --with-deps chromium
 
       - name: Run linting and tests
