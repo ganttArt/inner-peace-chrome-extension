@@ -4,8 +4,8 @@
 const fs = require('fs')
 const path = require('path')
 
-// Read and evaluate the popup script to test its functions
-const popupScriptPath = path.join(__dirname, '../../popup.js')
+// Path to the popup script
+const popupScriptPath = path.join(__dirname, '../../src/popup.js')
 const popupScriptContent = fs.readFileSync(popupScriptPath, 'utf8')
 
 // Create a mock environment and evaluate the script

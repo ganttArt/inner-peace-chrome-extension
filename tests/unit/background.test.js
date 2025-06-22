@@ -4,8 +4,8 @@
 const fs = require('fs')
 const path = require('path')
 
-// Read and evaluate the background script to test its functions
-const backgroundScriptPath = path.join(__dirname, '../../background.js')
+// Path to the background script
+const backgroundScriptPath = path.join(__dirname, '../../src/background.js')
 const backgroundScriptContent = fs.readFileSync(backgroundScriptPath, 'utf8')
 
 // Create a mock environment and evaluate the script

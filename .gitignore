@@ -5,10 +5,10 @@ yarn-debug.log*
 yarn-error.log*
 
 # Testing
-coverage/
+tests/test-output/coverage/
 .nyc_output/
-test-results/
-playwright-report/
+tests/test-output/test-results/
+tests/test-output/playwright-report/
 playwright/.cache/
 
 # Environment variables

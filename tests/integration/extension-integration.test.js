@@ -4,8 +4,8 @@ const fs = require('fs')
 const path = require('path')
 
 // Read the actual extension files
-const backgroundScript = fs.readFileSync(path.join(__dirname, '../../background.js'), 'utf8')
-const popupScript = fs.readFileSync(path.join(__dirname, '../../popup.js'), 'utf8')
+const backgroundScript = fs.readFileSync(path.join(__dirname, '../../src/background.js'), 'utf8')
+const popupScript = fs.readFileSync(path.join(__dirname, '../../src/popup.js'), 'utf8')
 const linkedinIndexScript = fs.readFileSync(path.join(__dirname, '../../scripts/linkedin/index.js'), 'utf8')
 const linkedinFeedScript = fs.readFileSync(path.join(__dirname, '../../scripts/linkedin/feed.js'), 'utf8')
 const linkedinAsideScript = fs.readFileSync(path.join(__dirname, '../../scripts/linkedin/aside.js'), 'utf8')

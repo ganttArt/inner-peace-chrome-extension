@@ -3,7 +3,7 @@ const { test, expect, chromium } = require('@playwright/test')
 const path = require('path')
 
 const EXTENSION_PATH = path.join(__dirname, '../../')
-const POPUP_PATH = 'popup.html'
+const POPUP_PATH = 'src/popup.html'
 
 // Helper to get the extension ID from the background page
 async function getExtensionId (context) {
@@ -34,8 +34,8 @@ test.describe('InnerPeace Chrome Extension', () => {
     context = await chromium.launchPersistentContext('', {
       headless: false,
       args: [
-        `--disable-extensions-except=${EXTENSION_PATH}`,
-        `--load-extension=${EXTENSION_PATH}`
+                `--disable-extensions-except=${EXTENSION_PATH}`,
+                `--load-extension=${EXTENSION_PATH}`
       ]
     })
     // Wait for background page to load

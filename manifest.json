@@ -3,21 +3,27 @@
     "name": "InnerPeace",
     "version": "1.0",
     "description": "Toggle visibility of distracting elements on various websites to maintain your InnerPeace.",
-    "permissions": ["storage", "scripting", "activeTab"],
+    "permissions": [
+        "storage",
+        "scripting",
+        "activeTab"
+    ],
     "action": {
-        "default_popup": "popup.html",
+        "default_popup": "src/popup.html",
         "default_icon": {
-            "16": "icon16.png",
-            "48": "icon48.png",
-            "128": "icon128.png"
+            "16": "src/icons/icon16.png",
+            "48": "src/icons/icon48.png",
+            "128": "src/icons/icon128.png"
         }
     },
     "background": {
-        "service_worker": "background.js"
+        "service_worker": "src/background.js"
     },
     "content_scripts": [
         {
-            "matches": ["*://www.linkedin.com/*"],
+            "matches": [
+                "*://www.linkedin.com/*"
+            ],
             "js": [
                 "scripts/linkedin/feed.js",
                 "scripts/linkedin/aside.js",
@@ -26,7 +32,9 @@
             "run_at": "document_idle"
         },
         {
-            "matches": ["*://www.youtube.com/*"],
+            "matches": [
+                "*://www.youtube.com/*"
+            ],
             "js": [
                 "scripts/youtube/homefeed.js",
                 "scripts/youtube/videopage.js",
@@ -36,8 +44,8 @@
         }
     ],
     "icons": {
-        "16": "icon16.png",
-        "48": "icon48.png",
-        "128": "icon128.png"
+        "16": "src/icons/icon16.png",
+        "48": "src/icons/icon48.png",
+        "128": "src/icons/icon128.png"
     }
 }
