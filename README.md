@@ -5,6 +5,7 @@ A Chrome extension that helps you maintain focus by toggling visibility of distr
 ## Features
 
 - **LinkedIn Support**: Toggle the main feed and news sidebar visibility
+- **YouTube Support**: Toggle home feed, sidebar, and comments
 - **Modular Architecture**: Easy to add support for new websites
 - **Dynamic UI**: Popup automatically adapts to the current website
 - **Persistent Settings**: Your preferences are saved across sessions
@@ -14,18 +15,39 @@ A Chrome extension that helps you maintain focus by toggling visibility of distr
 ```
 inner-peace-chrome-extension/
 ├── manifest.json          # Extension configuration
-├── background.js          # Background service worker
-├── popup.html            # Extension popup interface
-├── popup.js              # Popup logic
-├── styles.css            # Styling for popup
-├── scripts/              # Website-specific content scripts
-│   ├── linkedin.js       # LinkedIn functionality
-│   ├── template.js       # Template for new websites
-│   └── example-youtube.js # Example YouTube implementation
-└── icons/                # Extension icons
-    ├── icon16.png
-    ├── icon48.png
-    └── icon128.png
+├── package.json           # Project dependencies and scripts
+├── README.md              # Project documentation
+├── .eslintrc.js           # Linting configuration
+├── playwright.config.js   # Playwright E2E test configuration
+├── .gitignore             # Git ignore rules
+├── src/                   # Core extension files
+│   ├── background.js      # Background service worker
+│   ├── popup.js           # Popup logic
+│   ├── popup.html         # Popup interface
+│   ├── styles.css         # Popup styles
+│   └── icons/             # Extension icons
+│       ├── icon16.png
+│       ├── icon48.png
+│       └── icon128.png
+├── scripts/               # Content scripts (injected into websites)
+│   ├── template.js        # Template for new content scripts
+│   ├── watch-tests.js     # Test watcher script
+│   ├── linkedin/          # LinkedIn-specific scripts
+│   │   ├── aside.js
+│   │   ├── feed.js
+│   │   └── index.js
+│   └── youtube/           # YouTube-specific scripts
+│       ├── homefeed.js
+│       ├── index.js
+│       └── videopage.js
+├── tests/                 # All test code and outputs
+│   ├── e2e/               # End-to-end tests (Playwright)
+│   ├── integration/       # Integration tests
+│   ├── unit/              # Unit tests
+│   ├── test-output/       # Generated test output (coverage, reports)
+│   ├── setup.js           # Jest setup
+│   └── TESTING.md         # Testing documentation
+└── .github/               # CI/CD workflows
 ```
 
 ## Adding Support for New Websites
@@ -34,10 +56,10 @@ To add support for a new website, follow these steps:
 
 ### 1. Create a Content Script
 
-Copy `scripts/template.js` and create a new file (e.g., `scripts/youtube.js`):
+Copy `scripts/template.js` and create a new file (e.g., `scripts/youtube/index.js`):
 
 ```javascript
-// Example: scripts/youtube.js
+// Example: scripts/youtube/index.js
 (function () {
     function toggleHomeFeed(visible) {
         const homeFeed = document.querySelector('#contents.ytd-rich-grid-renderer');
@@ -66,12 +88,12 @@ Add the new content script to `manifest.json`:
     "content_scripts": [
         {
             "matches": ["*://www.linkedin.com/*"],
-            "js": ["scripts/linkedin.js"],
+            "js": ["scripts/linkedin/feed.js", "scripts/linkedin/aside.js", "scripts/linkedin/index.js"],
             "run_at": "document_idle"
         },
         {
             "matches": ["*://www.youtube.com/*"],
-            "js": ["scripts/youtube.js"],
+            "js": ["scripts/youtube/homefeed.js", "scripts/youtube/videopage.js", "scripts/youtube/index.js"],
             "run_at": "document_idle"
         }
     ]
@@ -80,16 +102,16 @@ Add the new content script to `manifest.json`:
 
 ### 3. Update Background Script
 
-Add the website configuration to `background.js`:
+Add the website configuration to `src/background.js`:
 
 ```javascript
 const WEBSITE_CONFIGS = {
     'linkedin.com': {
-        script: 'scripts/linkedin.js',
+        script: 'scripts/linkedin/index.js',
         settings: ['linkedin_showFeed', 'linkedin_showAside']
     },
     'youtube.com': {
-        script: 'scripts/youtube.js',
+        script: 'scripts/youtube/index.js',
         settings: ['youtube_showHomeFeed', 'youtube_showSidebar', 'youtube_showComments']
     }
 };
@@ -97,7 +119,7 @@ const WEBSITE_CONFIGS = {
 
 ### 4. Update Popup Script
 
-Add website-specific controls to `popup.js`:
+Add website-specific controls to `src/popup.js`:
 
 ```javascript
 // In setupWebsiteControls function
@@ -147,7 +169,7 @@ function createYouTubeControls(settings) {
 
 ## Usage
 
-1. Navigate to a supported website (currently LinkedIn)
+1. Navigate to a supported website (currently LinkedIn and YouTube)
 2. Click the InnerPeace extension icon
 3. Use the toggles to show/hide distracting elements
 4. Your settings will be automatically applied and saved

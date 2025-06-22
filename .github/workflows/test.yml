@@ -1,0 +1,179 @@
+name: Test Chrome Extension
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: |
+          # Install Playwright with system dependencies (recommended approach)
+          # Only install Chromium since this is a Chrome extension
+          npx playwright install --with-deps chromium
+
+      - name: Run linting and tests
+        run: |
+          npm run lint
+          npm test
+          npm run test:coverage
+
+      - name: Run end-to-end tests
+        run: npm run test:e2e
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.node-version }}
+          path: |
+            tests/test-output/test-results/
+            tests/test-output/playwright-report/
+            tests/test-output/coverage/
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        if: github.event_name == 'push' && matrix.node-version == '20.x'
+        with:
+          file: ./tests/test-output/coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+
+  extension-build:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate extension
+        run: |
+          # Basic validation of manifest.json
+          if ! jq empty manifest.json 2>/dev/null; then
+            echo "❌ manifest.json is not valid JSON"
+            exit 1
+          fi
+
+          # Check required fields
+          required_fields=("manifest_version" "name" "version" "description")
+          for field in "${required_fields[@]}"; do
+            if ! jq -e ".$field" manifest.json >/dev/null 2>&1; then
+              echo "❌ manifest.json missing required field: $field"
+              exit 1
+            fi
+          done
+
+          # Check if required files exist
+          required_files=("src/background.js" "src/popup.html" "src/popup.js" "manifest.json")
+          for file in "${required_files[@]}"; do
+            if [[ ! -f "$file" ]]; then
+              echo "❌ Missing required file: $file"
+              exit 1
+            fi
+          done
+
+          # Check if icon files exist
+          icon_files=("src/icons/icon16.png" "src/icons/icon48.png" "src/icons/icon128.png")
+          for icon in "${icon_files[@]}"; do
+            if [[ ! -f "$icon" ]]; then
+              echo "❌ Missing icon file: $icon"
+              exit 1
+            fi
+          done
+
+          echo "✅ Extension validation passed"
+
+      - name: Create extension package
+        run: |
+          # Create a zip file of the extension
+          zip -r inner-peace-extension.zip . \
+            -x "node_modules/*" \
+            -x ".git/*" \
+            -x "tests/*" \
+            -x "*.test.js" \
+            -x "*.spec.js" \
+            -x "coverage/*" \
+            -x "test-results/*" \
+            -x "playwright-report/*" \
+            -x ".github/*" \
+            -x "scripts/watch-tests.js" \
+            -x "playwright.config.js" \
+            -x "package*.json" \
+            -x ".eslintrc*" \
+            -x ".gitignore"
+
+      - name: Upload extension package
+        uses: actions/upload-artifact@v4
+        with:
+          name: inner-peace-extension
+          path: inner-peace-extension.zip
+
+  security:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run security audit
+        run: npm audit --audit-level=moderate
+
+      - name: Check for known vulnerabilities
+        run: |
+          # Check for common security issues in extension code
+          echo "Checking for potential security issues..."
+
+          # Check for eval usage
+          if grep -r "eval(" . --include="*.js" --exclude-dir=node_modules --exclude-dir=tests; then
+            echo "⚠️  Warning: eval() usage detected"
+          fi
+
+          # Check for innerHTML usage
+          if grep -r "innerHTML" . --include="*.js" --exclude-dir=node_modules --exclude-dir=tests; then
+            echo "⚠️  Warning: innerHTML usage detected"
+          fi
+
+          echo "✅ Security checks completed"

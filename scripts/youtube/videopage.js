@@ -1,5 +1,5 @@
 // YouTube Video Page Module
-(function() {
+(function () {
     const VIDEO_RIGHT_PANEL_SELECTORS = [
         '#secondary.ytd-watch-flexy',
         '#secondary',
@@ -10,7 +10,7 @@
         '#related',
         'ytd-related-chips-renderer',
         'ytd-watch-next-secondary-results-renderer'
-    ];
+    ]
 
     const VIDEO_CONTENTS_SECTION_SELECTORS = [
         '#contents.ytd-item-section-renderer',
@@ -29,7 +29,7 @@
         'ytd-watch-flexy[fullscreen] #secondary',
         'ytd-watch-flexy[theater] #secondary-inner',
         'ytd-watch-flexy[fullscreen] #secondary-inner'
-    ];
+    ]
 
     const CLASS_BASED_SELECTORS = [
         '.ytd-watch-next-secondary-results-renderer',
@@ -38,116 +38,115 @@
         '.ytd-watch-flexy #secondary-inner',
         '.ytd-watch-flexy #related',
         '.ytd-watch-flexy #contents'
-    ];
+    ]
 
-    function findVideoPageElements(selectors) {
-        const elements = [];
+    function findVideoPageElements (selectors) {
+        const elements = []
         for (const selector of selectors) {
-            document.querySelectorAll(selector).forEach(el => elements.push(el));
+            document.querySelectorAll(selector).forEach(el => elements.push(el))
         }
-        return elements;
+        return elements
     }
 
-    function toggleVideoPageContent(visible) {
+    function toggleVideoPageContent (visible) {
         // Hide/show right panel elements
-        findVideoPageElements(VIDEO_RIGHT_PANEL_SELECTORS).forEach(element => {
-            element.style.display = visible ? '' : 'none';
-        });
+        const rightPanelElements = findVideoPageElements(VIDEO_RIGHT_PANEL_SELECTORS)
+        window.InnerPeaceUtils?.setDisplayMultiple(rightPanelElements, visible)
+
         // Hide/show contents section elements
-        findVideoPageElements(VIDEO_CONTENTS_SECTION_SELECTORS).forEach(element => {
-            element.style.display = visible ? '' : 'none';
-        });
+        const contentsElements = findVideoPageElements(VIDEO_CONTENTS_SECTION_SELECTORS)
+        window.InnerPeaceUtils?.setDisplayMultiple(contentsElements, visible)
+
         // Hide/show class-based elements
-        findVideoPageElements(CLASS_BASED_SELECTORS).forEach(element => {
-            element.style.display = visible ? '' : 'none';
-        });
+        const classElements = findVideoPageElements(CLASS_BASED_SELECTORS)
+        window.InnerPeaceUtils?.setDisplayMultiple(classElements, visible)
     }
 
-    function updateVideoPageVisibility() {
+    function updateVideoPageVisibility () {
         try {
             if (!chrome?.runtime?.id) {
-                return;
+                return
             }
             chrome.storage.sync.get(['youtube_showRightPanel'], function (result) {
                 try {
-                    const showRightPanel = typeof result.youtube_showRightPanel !== 'undefined' ? result.youtube_showRightPanel : false;
-                    toggleVideoPageContent(showRightPanel);
+                    const showRightPanel = typeof result.youtube_showRightPanel !== 'undefined' ? result.youtube_showRightPanel : false
+                    toggleVideoPageContent(showRightPanel)
                 } catch (e) {
-                    console.error('[InnerPeace] Error inside storage callback:', e);
+                    console.error('[InnerPeace] Error inside storage callback:', e)
                 }
-            });
+            })
         } catch (error) {
-            console.error('[InnerPeace] Error in updateVideoPageVisibility:', error);
+            console.error('[InnerPeace] Error in updateVideoPageVisibility:', error)
         }
     }
 
-    function setupVideoPageObserver() {
-        let observer = new MutationObserver((mutations, obs) => {
+    function setupVideoPageObserver () {
+        const observer = new MutationObserver((mutations, obs) => {
             const found = findVideoPageElements(VIDEO_RIGHT_PANEL_SELECTORS).length > 0 ||
-                          findVideoPageElements(VIDEO_CONTENTS_SECTION_SELECTORS).length > 0;
+                findVideoPageElements(VIDEO_CONTENTS_SECTION_SELECTORS).length > 0
             if (found) {
-                updateVideoPageVisibility();
-                obs.disconnect();
+                updateVideoPageVisibility()
+                obs.disconnect()
             }
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
+        })
+        observer.observe(document.body, { childList: true, subtree: true })
     }
 
-    function immediateVideoPageCheck() {
+    function immediateVideoPageCheck () {
         setTimeout(() => {
             const found = findVideoPageElements(VIDEO_RIGHT_PANEL_SELECTORS).length > 0 ||
-                          findVideoPageElements(VIDEO_CONTENTS_SECTION_SELECTORS).length > 0;
+                findVideoPageElements(VIDEO_CONTENTS_SECTION_SELECTORS).length > 0
             if (found) {
-                updateVideoPageVisibility();
+                updateVideoPageVisibility()
             }
-        }, 1000);
+        }, 1000)
     }
 
-    function periodicVideoPageCheck() {
+    function periodicVideoPageCheck () {
         const interval = setInterval(() => {
             try {
                 if (!chrome?.runtime?.id) {
-                    clearInterval(interval);
-                    return;
+                    clearInterval(interval)
+                    return
                 }
-                updateVideoPageVisibility();
+                updateVideoPageVisibility()
             } catch (err) {
-                clearInterval(interval);
+                clearInterval(interval)
             }
-        }, 2000);
+        }, 2000)
     }
 
-    function aggressiveVideoPageCheck() {
+    function aggressiveVideoPageCheck () {
         const interval = setInterval(() => {
             try {
                 if (!chrome?.runtime?.id) {
-                    clearInterval(interval);
-                    return;
+                    clearInterval(interval)
+                    return
                 }
                 chrome.storage.sync.get(['youtube_showRightPanel'], function (result) {
                     try {
-                        const showRightPanel = typeof result.youtube_showRightPanel !== 'undefined' ? result.youtube_showRightPanel : false;
+                        const showRightPanel = typeof result.youtube_showRightPanel !== 'undefined' ? result.youtube_showRightPanel : false
                         if (!showRightPanel) {
-                            toggleVideoPageContent(false);
+                            toggleVideoPageContent(false)
                         }
                     } catch (e) {
                         // ignore
                     }
-                });
+                })
             } catch (err) {
-                clearInterval(interval);
+                clearInterval(interval)
             }
-        }, 3000);
+        }, 3000)
     }
 
-    function setupVideoPageResizeListener() {
-        let resizeTimeout;
+    function setupVideoPageResizeListener () {
+        let resizeTimeout
         window.addEventListener('resize', () => {
-            clearTimeout(resizeTimeout);
+            clearTimeout(resizeTimeout)
             resizeTimeout = setTimeout(() => {
-                updateVideoPageVisibility();
-            }, 250);
-        });
+                updateVideoPageVisibility()
+            }, 250)
+        })
     }
 
     // Export to global YouTube object
@@ -159,5 +158,5 @@
         periodicVideoPageCheck,
         aggressiveVideoPageCheck,
         setupVideoPageResizeListener
-    };
-})(); 
+    }
+})()

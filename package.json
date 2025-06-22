@@ -1,0 +1,67 @@
+{
+    "name": "inner-peace-chrome-extension",
+    "version": "1.0.0",
+    "description": "A Chrome extension that helps you maintain focus by toggling visibility of distracting elements on various websites",
+    "main": "background.js",
+    "scripts": {
+        "test": "jest",
+        "test:watch": "jest --watch",
+        "test:coverage": "jest --coverage",
+        "test:e2e": "playwright test",
+        "test:e2e:headed": "playwright test --headed",
+        "watch": "node scripts/watch-tests.js",
+        "watch:unit": "node scripts/watch-tests.js unit",
+        "watch:e2e": "node scripts/watch-tests.js e2e",
+        "build": "echo 'No build step required for Chrome extension'",
+        "dev": "npm run watch",
+        "lint": "eslint . --ext .js",
+        "lint:fix": "eslint . --ext .js --fix"
+    },
+    "keywords": [
+        "chrome-extension",
+        "productivity",
+        "focus",
+        "distraction-free"
+    ],
+    "author": "",
+    "license": "MIT",
+    "devDependencies": {
+        "@playwright/test": "^1.40.0",
+        "jest": "^29.7.0",
+        "jest-environment-jsdom": "^29.7.0",
+        "eslint": "^8.55.0",
+        "eslint-config-standard": "^17.1.0",
+        "eslint-plugin-import": "^2.29.0",
+        "eslint-plugin-n": "^16.3.0",
+        "eslint-plugin-promise": "^6.1.1",
+        "chokidar": "^3.5.3"
+    },
+    "jest": {
+        "testEnvironment": "jsdom",
+        "setupFilesAfterEnv": [
+            "<rootDir>/tests/setup.js"
+        ],
+        "collectCoverageFrom": [
+            "src/**/*.js",
+            "scripts/**/*.js",
+            "!tests/**/*.js",
+            "!node_modules/**/*.js"
+        ],
+        "coverageDirectory": "tests/test-output/coverage",
+        "coverageReporters": [
+            "text",
+            "lcov",
+            "html"
+        ],
+        "testMatch": [
+            "**/tests/unit/**/*.test.js",
+            "**/tests/unit/**/*.spec.js",
+            "**/tests/integration/**/*.test.js",
+            "**/tests/integration/**/*.spec.js"
+        ],
+        "testPathIgnorePatterns": [
+            "/node_modules/",
+            "/tests/e2e/"
+        ]
+    }
+}
