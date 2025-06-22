@@ -69,6 +69,8 @@ async function tryFallbackDetection () {
             console.log('[InnerPeace] Parsed hostname:', hostname)
 
             // Check if it's a supported website
+            // The following log and setupWebsiteControls calls are intentionally
+            // inside each conditional branch and will not run unconditionally.
             if (hostname.includes('youtube.com')) {
                 currentWebsite = 'youtube.com'
                 currentConfig = {
