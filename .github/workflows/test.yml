@@ -99,7 +99,7 @@ jobs:
       - name: Check extension files
         run: |
           # Check if required files exist
-          required_files=("background.js" "popup.html" "popup.js" "manifest.json")
+          required_files=("src/background.js" "src/popup.html" "src/popup.js" "manifest.json")
           for file in "${required_files[@]}"; do
             if [[ ! -f "$file" ]]; then
               echo "❌ Missing required file: $file"
@@ -108,7 +108,7 @@ jobs:
           done
 
           # Check if icon files exist
-          icon_files=("icon16.png" "icon48.png" "icon128.png")
+          icon_files=("src/icons/icon16.png" "src/icons/icon48.png" "src/icons/icon128.png")
           for icon in "${icon_files[@]}"; do
             if [[ ! -f "$icon" ]]; then
               echo "❌ Missing icon file: $icon"
