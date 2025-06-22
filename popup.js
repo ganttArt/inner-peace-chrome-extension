@@ -9,9 +9,24 @@ async function initializePopup() {
     try {
         console.log('[InnerPeace] Initializing popup...');
         
+        // Check if we're in the extension context
+        if (!chrome?.runtime?.id) {
+            throw new Error('Not in extension context');
+        }
+        
         // Get current website from background script
-        const response = await chrome.runtime.sendMessage({ action: 'getCurrentWebsite' });
+        const response = await Promise.race([
+            chrome.runtime.sendMessage({ action: 'getCurrentWebsite' }),
+            new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Background script timeout')), 3000)
+            )
+        ]);
         console.log('[InnerPeace] Background response:', response);
+        
+        // Handle undefined or null response
+        if (!response) {
+            throw new Error('Background script returned undefined response');
+        }
         
         currentWebsite = response.website;
         currentConfig = response.config;
@@ -38,6 +53,11 @@ async function tryFallbackDetection() {
     try {
         console.log('[InnerPeace] Trying fallback detection...');
         
+        // Check if we're in the extension context
+        if (!chrome?.runtime?.id) {
+            throw new Error('Not in extension context');
+        }
+        
         // Get the current tab directly
         const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
         if (tabs[0] && tabs[0].url) {
@@ -53,7 +73,7 @@ async function tryFallbackDetection() {
                 currentWebsite = 'youtube.com';
                 currentConfig = {
                     script: 'scripts/youtube.js',
-                    settings: ['youtube_showFeed']
+                    settings: ['youtube_showFeed', 'youtube_showRightPanel']
                 };
                 console.log('[InnerPeace] Fallback detected YouTube');
                 setupWebsiteControls();
@@ -92,15 +112,25 @@ async function setupWebsiteControls() {
     // Get current settings
     let settings = {};
     try {
-        settings = await chrome.runtime.sendMessage({ 
-            action: 'getWebsiteSettings', 
-            website: currentWebsite 
-        });
+        const settingsResponse = await Promise.race([
+            chrome.runtime.sendMessage({ 
+                action: 'getWebsiteSettings', 
+                website: currentWebsite 
+            }),
+            new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Settings retrieval timeout')), 3000)
+            )
+        ]);
+        
+        // Handle undefined or null response
+        if (settingsResponse) {
+            settings = settingsResponse;
+        }
     } catch (error) {
         console.error('Error getting settings, using defaults:', error);
         // Use default settings if we can't get them
         if (currentWebsite === 'youtube.com') {
-            settings = { youtube_showFeed: false };
+            settings = { youtube_showFeed: false, youtube_showRightPanel: false };
         } else if (currentWebsite === 'linkedin.com') {
             settings = { linkedin_showFeed: false, linkedin_showAside: false };
         }
@@ -155,6 +185,15 @@ function createYouTubeControls(settings) {
         'Toggle the YouTube home page video feed visibility'
     );
     container.appendChild(feedControl);
+    
+    // Right panel toggle
+    const rightPanelControl = createToggleControl(
+        'youtube_showRightPanel',
+        'Show Video Suggestions',
+        settings.youtube_showRightPanel || false,
+        'Toggle the right panel and additional video content sections when watching videos'
+    );
+    container.appendChild(rightPanelControl);
 }
 
 // Create a toggle control
@@ -181,13 +220,19 @@ function createToggleControl(settingKey, label, defaultValue, description) {
         const settings = { [settingKey]: newValue };
         
         try {
-            await chrome.runtime.sendMessage({
-                action: 'updateWebsiteSettings',
-                website: currentWebsite,
-                settings: settings
-            });
+            await Promise.race([
+                chrome.runtime.sendMessage({
+                    action: 'updateWebsiteSettings',
+                    website: currentWebsite,
+                    settings: settings
+                }),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Settings update timeout')), 3000)
+                )
+            ]);
         } catch (error) {
             console.error('Error updating settings:', error);
+            // Optionally show user feedback here
         }
     });
     

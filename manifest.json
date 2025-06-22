@@ -18,12 +18,20 @@
     "content_scripts": [
         {
             "matches": ["*://www.linkedin.com/*"],
-            "js": ["scripts/linkedin.js"],
+            "js": [
+                "scripts/linkedin/feed.js",
+                "scripts/linkedin/aside.js",
+                "scripts/linkedin/index.js"
+            ],
             "run_at": "document_idle"
         },
         {
             "matches": ["*://www.youtube.com/*"],
-            "js": ["scripts/youtube.js"],
+            "js": [
+                "scripts/youtube/homefeed.js",
+                "scripts/youtube/videopage.js",
+                "scripts/youtube/index.js"
+            ],
             "run_at": "document_idle"
         }
     ],

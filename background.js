@@ -9,7 +9,7 @@ const WEBSITE_CONFIGS = {
     },
     'youtube.com': {
         script: 'scripts/youtube.js',
-        settings: ['youtube_showFeed']
+        settings: ['youtube_showFeed', 'youtube_showRightPanel']
     }
     // Add more websites here as needed
     // 'facebook.com': {
@@ -42,49 +42,91 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     
     if (message.action === 'getCurrentWebsite') {
         // Get current active tab to determine website
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            console.log('[InnerPeace] Current tab:', tabs[0]);
-            
-            if (tabs[0]) {
-                const website = getWebsiteFromUrl(tabs[0].url);
-                const config = WEBSITE_CONFIGS[website];
-                console.log('[InnerPeace] Sending response:', { website, config });
-                sendResponse({ website, config });
-            } else {
-                console.log('[InnerPeace] No active tab found');
-                sendResponse({ website: null, config: null });
-            }
-        });
+        try {
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                try {
+                    console.log('[InnerPeace] Current tab:', tabs[0]);
+                    
+                    if (tabs && tabs[0]) {
+                        const website = getWebsiteFromUrl(tabs[0].url);
+                        const config = WEBSITE_CONFIGS[website];
+                        console.log('[InnerPeace] Sending response:', { website, config });
+                        sendResponse({ website, config });
+                    } else {
+                        console.log('[InnerPeace] No active tab found');
+                        sendResponse({ website: null, config: null });
+                    }
+                } catch (error) {
+                    console.error('[InnerPeace] Error in tabs query callback:', error);
+                    sendResponse({ website: null, config: null });
+                }
+            });
+        } catch (error) {
+            console.error('[InnerPeace] Error querying tabs:', error);
+            sendResponse({ website: null, config: null });
+        }
         return true; // Keep message channel open for async response
     }
     
     if (message.action === 'getWebsiteSettings') {
-        const website = message.website;
-        const config = WEBSITE_CONFIGS[website];
-        if (config) {
-            chrome.storage.sync.get(config.settings, (result) => {
-                sendResponse(result);
-            });
-        } else {
+        try {
+            const website = message.website;
+            const config = WEBSITE_CONFIGS[website];
+            if (config) {
+                chrome.storage.sync.get(config.settings, (result) => {
+                    try {
+                        sendResponse(result || {});
+                    } catch (error) {
+                        console.error('[InnerPeace] Error sending storage response:', error);
+                        sendResponse({});
+                    }
+                });
+            } else {
+                sendResponse({});
+            }
+        } catch (error) {
+            console.error('[InnerPeace] Error in getWebsiteSettings:', error);
             sendResponse({});
         }
         return true;
     }
     
     if (message.action === 'updateWebsiteSettings') {
-        const { website, settings } = message;
-        chrome.storage.sync.set(settings, () => {
-            // Forward the message to the appropriate content script
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                if (tabs[0]) {
-                    chrome.tabs.sendMessage(tabs[0].id, {
-                        action: 'updateSettings',
-                        settings: settings
-                    });
+        try {
+            const { website, settings } = message;
+            chrome.storage.sync.set(settings, () => {
+                try {
+                    // Forward the message to the appropriate content script
+                    try {
+                        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                            try {
+                                if (tabs && tabs[0] && website && WEBSITE_CONFIGS[website]) {
+                                    // Only send message if we're on a supported website
+                                    chrome.tabs.sendMessage(tabs[0].id, {
+                                        action: 'updateSettings',
+                                        settings: settings
+                                    }).catch((error) => {
+                                        // Content script might not be loaded, which is normal for unsupported sites
+                                        console.log('[InnerPeace] Could not send message to content script:', error.message);
+                                    });
+                                }
+                            } catch (error) {
+                                console.error('[InnerPeace] Error in tabs query callback for message sending:', error);
+                            }
+                        });
+                    } catch (error) {
+                        console.error('[InnerPeace] Error querying tabs for message sending:', error);
+                    }
+                    sendResponse({ success: true });
+                } catch (error) {
+                    console.error('[InnerPeace] Error in storage set callback:', error);
+                    sendResponse({ success: false, error: error.message });
                 }
             });
-            sendResponse({ success: true });
-        });
+        } catch (error) {
+            console.error('[InnerPeace] Error in updateWebsiteSettings:', error);
+            sendResponse({ success: false, error: error.message });
+        }
         return true;
     }
 });
