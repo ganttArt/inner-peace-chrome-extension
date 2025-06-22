@@ -2,19 +2,30 @@
 <html>
 
 <head>
+    <meta charset="utf-8">
+    <title>InnerPeace</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
-    <div id="container">
-        <label>
-            <input type="checkbox" id="toggleFeed"> Show LinkedIn Feed
-        </label>
-        <br>
-        <label>
-            <input type="checkbox" id="toggleAside"> Show LinkedIn News Aside
-        </label>
+    <div class="popup-container">
+        <header class="popup-header">
+            <h1>InnerPeace</h1>
+            <p>Maintain your focus on the web</p>
+        </header>
+        
+        <main class="popup-content">
+            <div id="controls-container">
+                <!-- Controls will be dynamically loaded here -->
+                <div class="loading">Loading...</div>
+            </div>
+        </main>
+        
+        <footer class="popup-footer">
+            <p>Toggle distracting elements to stay focused</p>
+        </footer>
     </div>
+    
     <script src="popup.js"></script>
 </body>
 

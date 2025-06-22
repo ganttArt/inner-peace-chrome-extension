@@ -1,33 +1,220 @@
-const toggleFeed = document.getElementById('toggleFeed');
-const toggleAside = document.getElementById('toggleAside');
+// Popup script for InnerPeace extension
+// Dynamically loads controls based on the current website
 
-// Get and set the initial states of both checkboxes from storage
-chrome.storage.sync.get(['showFeed', 'showAside'], (result) => {
-    toggleFeed.checked = result.showFeed || false;
-    toggleAside.checked = result.showAside || false;
-});
+let currentWebsite = null;
+let currentConfig = null;
 
-// Handle change events for both checkboxes
-toggleFeed.addEventListener('change', () => {
-    const newFeedValue = toggleFeed.checked;
-    chrome.storage.sync.set({ showFeed: newFeedValue }, () => {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            chrome.tabs.sendMessage(tabs[0].id, {
-                action: "toggleFeed",
-                value: newFeedValue
-            });
+// Initialize the popup
+async function initializePopup() {
+    try {
+        console.log('[InnerPeace] Initializing popup...');
+        
+        // Get current website from background script
+        const response = await chrome.runtime.sendMessage({ action: 'getCurrentWebsite' });
+        console.log('[InnerPeace] Background response:', response);
+        
+        currentWebsite = response.website;
+        currentConfig = response.config;
+        
+        console.log('[InnerPeace] Current website:', currentWebsite);
+        console.log('[InnerPeace] Current config:', currentConfig);
+        
+        if (currentWebsite && currentConfig) {
+            setupWebsiteControls();
+        } else {
+            console.log('[InnerPeace] Website not supported or config missing');
+            // Try to get the current tab URL directly as a fallback
+            await tryFallbackDetection();
+        }
+    } catch (error) {
+        console.error('Error initializing popup:', error);
+        // Try fallback detection if background script fails
+        await tryFallbackDetection();
+    }
+}
+
+// Fallback detection method
+async function tryFallbackDetection() {
+    try {
+        console.log('[InnerPeace] Trying fallback detection...');
+        
+        // Get the current tab directly
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tabs[0] && tabs[0].url) {
+            console.log('[InnerPeace] Current tab URL:', tabs[0].url);
+            
+            // Parse the URL manually
+            const url = new URL(tabs[0].url);
+            const hostname = url.hostname;
+            console.log('[InnerPeace] Parsed hostname:', hostname);
+            
+            // Check if it's a supported website
+            if (hostname.includes('youtube.com')) {
+                currentWebsite = 'youtube.com';
+                currentConfig = {
+                    script: 'scripts/youtube.js',
+                    settings: ['youtube_showFeed']
+                };
+                console.log('[InnerPeace] Fallback detected YouTube');
+                setupWebsiteControls();
+                return;
+            } else if (hostname.includes('linkedin.com')) {
+                currentWebsite = 'linkedin.com';
+                currentConfig = {
+                    script: 'scripts/linkedin.js',
+                    settings: ['linkedin_showFeed', 'linkedin_showAside']
+                };
+                console.log('[InnerPeace] Fallback detected LinkedIn');
+                setupWebsiteControls();
+                return;
+            }
+        }
+        
+        // If we get here, the website is not supported
+        showUnsupportedWebsite();
+    } catch (error) {
+        console.error('Error in fallback detection:', error);
+        showUnsupportedWebsite();
+    }
+}
+
+// Setup controls for the current website
+async function setupWebsiteControls() {
+    const container = document.getElementById('controls-container');
+    container.innerHTML = ''; // Clear existing content
+    
+    // Create header
+    const header = document.createElement('h2');
+    header.textContent = `${currentWebsite.charAt(0).toUpperCase() + currentWebsite.slice(1)} Settings`;
+    header.className = 'website-header';
+    container.appendChild(header);
+    
+    // Get current settings
+    let settings = {};
+    try {
+        settings = await chrome.runtime.sendMessage({ 
+            action: 'getWebsiteSettings', 
+            website: currentWebsite 
         });
-    });
-});
+    } catch (error) {
+        console.error('Error getting settings, using defaults:', error);
+        // Use default settings if we can't get them
+        if (currentWebsite === 'youtube.com') {
+            settings = { youtube_showFeed: false };
+        } else if (currentWebsite === 'linkedin.com') {
+            settings = { linkedin_showFeed: false, linkedin_showAside: false };
+        }
+    }
+    
+    console.log('[InnerPeace] Retrieved settings:', settings);
+    
+    // Create controls based on website configuration
+    if (currentWebsite === 'linkedin.com') {
+        createLinkedInControls(settings);
+    } else if (currentWebsite === 'youtube.com') {
+        createYouTubeControls(settings);
+    }
+    // Add more website-specific control creators here
+    // else if (currentWebsite === 'facebook.com') {
+    //     createFacebookControls(settings);
+    // }
+}
 
-toggleAside.addEventListener('change', () => {
-    const newAsideValue = toggleAside.checked;
-    chrome.storage.sync.set({ showAside: newAsideValue }, () => {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            chrome.tabs.sendMessage(tabs[0].id, {
-                action: "toggleAside",
-                value: newAsideValue
+// Create LinkedIn-specific controls
+function createLinkedInControls(settings) {
+    const container = document.getElementById('controls-container');
+    
+    // Feed toggle
+    const feedControl = createToggleControl(
+        'linkedin_showFeed',
+        'Show Feed',
+        settings.linkedin_showFeed || false,
+        'Toggle the main LinkedIn feed visibility'
+    );
+    container.appendChild(feedControl);
+    
+    // Aside toggle
+    const asideControl = createToggleControl(
+        'linkedin_showAside',
+        'Show News Sidebar',
+        settings.linkedin_showAside || false,
+        'Toggle the LinkedIn news sidebar visibility'
+    );
+    container.appendChild(asideControl);
+}
+
+// Create YouTube-specific controls
+function createYouTubeControls(settings) {
+    const container = document.getElementById('controls-container');
+    
+    // Feed toggle
+    const feedControl = createToggleControl(
+        'youtube_showFeed',
+        'Show Home Feed',
+        settings.youtube_showFeed || false,
+        'Toggle the YouTube home page video feed visibility'
+    );
+    container.appendChild(feedControl);
+}
+
+// Create a toggle control
+function createToggleControl(settingKey, label, defaultValue, description) {
+    const controlDiv = document.createElement('div');
+    controlDiv.className = 'control-item';
+    
+    const labelElement = document.createElement('label');
+    labelElement.className = 'control-label';
+    labelElement.textContent = label;
+    
+    const toggle = document.createElement('input');
+    toggle.type = 'checkbox';
+    toggle.checked = defaultValue;
+    toggle.className = 'control-toggle';
+    
+    const descriptionElement = document.createElement('p');
+    descriptionElement.className = 'control-description';
+    descriptionElement.textContent = description;
+    
+    // Handle toggle changes
+    toggle.addEventListener('change', async () => {
+        const newValue = toggle.checked;
+        const settings = { [settingKey]: newValue };
+        
+        try {
+            await chrome.runtime.sendMessage({
+                action: 'updateWebsiteSettings',
+                website: currentWebsite,
+                settings: settings
             });
-        });
+        } catch (error) {
+            console.error('Error updating settings:', error);
+        }
     });
-});
+    
+    controlDiv.appendChild(labelElement);
+    controlDiv.appendChild(toggle);
+    controlDiv.appendChild(descriptionElement);
+    
+    return controlDiv;
+}
+
+// Show message for unsupported websites
+function showUnsupportedWebsite() {
+    const container = document.getElementById('controls-container');
+    container.innerHTML = `
+        <div class="unsupported-message">
+            <h2>Website Not Supported</h2>
+            <p>This website is not currently supported by InnerPeace.</p>
+            <p>Supported websites:</p>
+            <ul>
+                <li>LinkedIn</li>
+                <li>YouTube</li>
+                <!-- Add more supported websites here -->
+            </ul>
+            <p><small>Debug: Current website detected as: ${currentWebsite || 'none'}</small></p>
+        </div>
+    `;
+}
+
+// Initialize when popup loads
+document.addEventListener('DOMContentLoaded', initializePopup);
