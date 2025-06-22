@@ -25,6 +25,7 @@
                 "*://www.linkedin.com/*"
             ],
             "js": [
+                "scripts/utils.js",
                 "scripts/linkedin/feed.js",
                 "scripts/linkedin/aside.js",
                 "scripts/linkedin/index.js"
@@ -36,6 +37,7 @@
                 "*://www.youtube.com/*"
             ],
             "js": [
+                "scripts/utils.js",
                 "scripts/youtube/homefeed.js",
                 "scripts/youtube/videopage.js",
                 "scripts/youtube/index.js"
