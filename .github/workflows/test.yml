@@ -29,10 +29,9 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browsers
-        uses: microsoft/playwright-github-action@v1
-        with:
-          browsers: chromium
-          cache: true
+        run: |
+          # Install Playwright with system dependencies (recommended approach)
+          npx playwright install --with-deps chromium
 
       - name: Run linting and tests
         run: |
