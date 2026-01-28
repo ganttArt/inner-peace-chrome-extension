@@ -1,15 +1,47 @@
 // LinkedIn Feed Module
 (function () {
-    function toggleFeedVisibility (visible) {
-        const feed =
-            document.querySelector('[data-id="feed-container"]') ||
-            document.querySelector('.scaffold-finite-scroll')
+    function getFeedElement() {
+        const selectors = [
+            '[data-testid="mainFeed"]',
+            '[data-view-name="news-module"]',
+            '[data-test-id="feed-container"]',
+            '[data-test-id="main-feed"]',
+            '[data-test-id="feed"]',
+            '[data-id="feed-container"]',
+            '.scaffold-finite-scroll'
+        ]
+        function getAncestor(el, levels) {
+            let node = el
+            for (let i = 0; i < levels && node; i++) {
+                node = node.parentElement
+            }
+            return node || null
+        }
+
+        for (const sel of selectors) {
+            const el = document.querySelector(sel)
+            if (!el) continue
+
+            if (sel === '[data-view-name="news-module"]') {
+                const ancestor = getAncestor(el, 4)
+                if (ancestor) return ancestor
+                return el
+            }
+
+            return el
+        }
+
+        return null
+    }
+
+    function toggleFeedVisibility(visible) {
+        const feed = getFeedElement()
         if (feed) {
             window.InnerPeaceUtils?.setDisplay(feed, visible)
         }
     }
 
-    function updateFeedVisibility () {
+    function updateFeedVisibility() {
         try {
             if (!chrome?.runtime?.id) return
         } catch (err) {
@@ -32,11 +64,10 @@
         }
     }
 
-    function setupFeedObserver () {
+    function setupFeedObserver() {
         try {
             const observer = new MutationObserver((mutations, obs) => {
-                const feedExists = document.querySelector('[data-id="feed-container"]') ||
-                    document.querySelector('.scaffold-finite-scroll')
+                const feedExists = getFeedElement()
                 if (feedExists) {
                     updateFeedVisibility()
                     obs.disconnect()
@@ -51,17 +82,16 @@
         }
     }
 
-    function immediateFeedCheck () {
+    function immediateFeedCheck() {
         setTimeout(() => {
-            const feedExists = document.querySelector('[data-id="feed-container"]') ||
-                document.querySelector('.scaffold-finite-scroll')
+            const feedExists = getFeedElement()
             if (feedExists) {
                 updateFeedVisibility()
             }
         }, 1000)
     }
 
-    function periodicFeedCheck () {
+    function periodicFeedCheck() {
         const interval = setInterval(() => {
             try {
                 if (!chrome?.runtime?.id) {

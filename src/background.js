@@ -19,7 +19,7 @@ const WEBSITE_CONFIGS = {
 }
 
 // Get the current website from a URL
-function getWebsiteFromUrl (url) {
+function getWebsiteFromUrl(url) {
     try {
         const hostname = new URL(url).hostname
         console.log('[InnerPeace] Parsed hostname:', hostname)
@@ -41,7 +41,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('[InnerPeace] Background received message:', message)
 
     if (message.action === 'getCurrentWebsite') {
-    // Get current active tab to determine website
+        // Get current active tab to determine website
         try {
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 try {

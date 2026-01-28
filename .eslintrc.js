@@ -33,7 +33,9 @@ module.exports = {
         // Code quality
         'prefer-const': 'error',
         'no-var': 'error',
-        'no-unused-vars': 'warn'
+        'no-unused-vars': 'warn',
+        // Disable requirement for space before function parentheses (project prefers no space)
+        'space-before-function-paren': 'off'
     },
     overrides: [
         {

@@ -1,13 +1,43 @@
 // LinkedIn Aside Module
 (function () {
-    function toggleAsideVisibility (visible) {
-        const aside = document.querySelector('aside.scaffold-layout__aside[aria-label="LinkedIn News"]')
+    function getAsideElement() {
+        const selectors = [
+            'aside.scaffold-layout__aside[aria-label="LinkedIn News"]',
+            '[data-view-name="news-module"]'
+        ]
+
+        function getAncestor(el, levels) {
+            let node = el
+            for (let i = 0; i < levels && node; i++) {
+                node = node.parentElement
+            }
+            return node || null
+        }
+
+        for (const sel of selectors) {
+            const el = document.querySelector(sel)
+            if (!el) continue
+
+            if (sel === '[data-view-name="news-module"]') {
+                const ancestor = getAncestor(el, 4)
+                if (ancestor) return ancestor
+                return el
+            }
+
+            return el
+        }
+
+        return null
+    }
+
+    function toggleAsideVisibility(visible) {
+        const aside = getAsideElement()
         if (aside) {
             aside.style.display = visible ? '' : 'none'
         }
     }
 
-    function updateAsideVisibility () {
+    function updateAsideVisibility() {
         try {
             if (!chrome?.runtime?.id) return
         } catch (err) {
@@ -30,7 +60,7 @@
         }
     }
 
-    function setupAsideObserver () {
+    function setupAsideObserver() {
         try {
             const observer = new MutationObserver((mutations, obs) => {
                 const asideExists = document.querySelector('aside.scaffold-layout__aside[aria-label="LinkedIn News"]')
@@ -48,7 +78,7 @@
         }
     }
 
-    function immediateAsideCheck () {
+    function immediateAsideCheck() {
         setTimeout(() => {
             const asideExists = document.querySelector('aside.scaffold-layout__aside[aria-label="LinkedIn News"]')
             if (asideExists) {
@@ -57,7 +87,7 @@
         }, 1000)
     }
 
-    function periodicAsideCheck () {
+    function periodicAsideCheck() {
         const interval = setInterval(() => {
             try {
                 if (!chrome?.runtime?.id) {
