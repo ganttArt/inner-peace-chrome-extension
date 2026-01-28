@@ -70,8 +70,8 @@
                 const feedExists = getFeedElement()
                 if (feedExists) {
                     updateFeedVisibility()
-                    obs.disconnect()
-                    console.log('[InnerPeace] LinkedIn feed observer disconnected after applying settings.')
+                    // Keep observing to re-apply settings if LinkedIn re-renders content
+                    // (do not disconnect immediately)
                 }
             })
 
@@ -83,12 +83,16 @@
     }
 
     function immediateFeedCheck() {
-        setTimeout(() => {
-            const feedExists = getFeedElement()
-            if (feedExists) {
-                updateFeedVisibility()
-            }
-        }, 1000)
+        // Run initial check and a few retries to handle slow-loading LinkedIn DOM
+        const attempts = [1000, 2000, 3500]
+        for (const delay of attempts) {
+            setTimeout(() => {
+                const feedExists = getFeedElement()
+                if (feedExists) {
+                    updateFeedVisibility()
+                }
+            }, delay)
+        }
     }
 
     function periodicFeedCheck() {

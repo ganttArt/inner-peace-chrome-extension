@@ -1,7 +1,7 @@
 // LinkedIn Main Entry Point (Module Pattern)
 // This file should be loaded after feed.js and aside.js
 
-function onLocationChange () {
+function onLocationChange() {
     // If we are on /feed, wait for feed/aside elements using the observers
     if (window.location.pathname.startsWith('/feed')) {
         window.LinkedInFeed.setupFeedObserver()
@@ -11,10 +11,17 @@ function onLocationChange () {
         window.LinkedInFeed.periodicFeedCheck()
         window.LinkedInAside.periodicAsideCheck()
     } else {
-    // On other pages, simply restore defaults
-        window.LinkedInFeed.toggleFeedVisibility(true)
-        window.LinkedInAside.toggleAsideVisibility(true)
-        console.log('[InnerPeace] Restored default LinkedIn view on non-/feed page.')
+        // On other pages, apply stored settings instead of forcing content visible
+        try {
+            if (window.LinkedInFeed && typeof window.LinkedInFeed.updateFeedVisibility === 'function') {
+                window.LinkedInFeed.updateFeedVisibility()
+            }
+            if (window.LinkedInAside && typeof window.LinkedInAside.updateAsideVisibility === 'function') {
+                window.LinkedInAside.updateAsideVisibility()
+            }
+        } catch (e) {
+            console.error('[InnerPeace] Error applying LinkedIn settings on non-/feed page:', e)
+        }
     }
 }
 

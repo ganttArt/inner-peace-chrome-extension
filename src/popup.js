@@ -5,7 +5,7 @@ let currentWebsite = null
 let currentConfig = null
 
 // Initialize the popup
-async function initializePopup () {
+async function initializePopup() {
     try {
         console.log('[InnerPeace] Initializing popup...')
 
@@ -49,7 +49,7 @@ async function initializePopup () {
 }
 
 // Fallback detection method
-async function tryFallbackDetection () {
+async function tryFallbackDetection() {
     try {
         console.log('[InnerPeace] Trying fallback detection...')
 
@@ -101,7 +101,7 @@ async function tryFallbackDetection () {
 }
 
 // Setup controls for the current website
-async function setupWebsiteControls () {
+async function setupWebsiteControls() {
     const container = document.getElementById('controls-container')
     container.innerHTML = '' // Clear existing content
 
@@ -153,14 +153,37 @@ async function setupWebsiteControls () {
 }
 
 // Create LinkedIn-specific controls
-function createLinkedInControls (settings) {
+function createLinkedInControls(settings) {
     const container = document.getElementById('controls-container')
+    // Master toggle (controls both feed and news sidebar)
+    const masterDiv = document.createElement('div')
+    masterDiv.className = 'control-item'
+
+    const masterLabel = document.createElement('label')
+    masterLabel.className = 'control-label'
+    masterLabel.textContent = 'Show LinkedIn Content'
+
+    const masterToggle = document.createElement('input')
+    masterToggle.type = 'checkbox'
+    const feedDefault = settings.linkedin_showFeed || false
+    const asideDefault = settings.linkedin_showAside || false
+    masterToggle.checked = feedDefault && asideDefault
+    masterToggle.className = 'control-toggle'
+
+    const masterDescription = document.createElement('p')
+    masterDescription.className = 'control-description'
+    masterDescription.textContent = 'Toggle both the main LinkedIn feed and the news sidebar'
+
+    masterDiv.appendChild(masterLabel)
+    masterDiv.appendChild(masterToggle)
+    masterDiv.appendChild(masterDescription)
+    container.appendChild(masterDiv)
 
     // Feed toggle
     const feedControl = createToggleControl(
         'linkedin_showFeed',
         'Show Feed',
-        settings.linkedin_showFeed || false,
+        feedDefault,
         'Toggle the main LinkedIn feed visibility'
     )
     container.appendChild(feedControl)
@@ -169,14 +192,41 @@ function createLinkedInControls (settings) {
     const asideControl = createToggleControl(
         'linkedin_showAside',
         'Show News Sidebar',
-        settings.linkedin_showAside || false,
+        asideDefault,
         'Toggle the LinkedIn news sidebar visibility'
     )
     container.appendChild(asideControl)
+
+    // Wire master toggle to update both settings and sync UI
+    // Get the checkbox inputs from the created controls
+    const feedToggle = feedControl.querySelector && feedControl.querySelector('input[type="checkbox"]')
+    const asideToggle = asideControl.querySelector && asideControl.querySelector('input[type="checkbox"]')
+
+    masterToggle.addEventListener('change', async () => {
+        const newValue = masterToggle.checked
+        const settingsToSet = { linkedin_showFeed: newValue, linkedin_showAside: newValue }
+        try {
+            await Promise.race([
+                chrome.runtime.sendMessage({
+                    action: 'updateWebsiteSettings',
+                    website: currentWebsite,
+                    settings: settingsToSet
+                }),
+                new Promise((_resolve, reject) =>
+                    setTimeout(() => reject(new Error('Settings update timeout')), 3000)
+                )
+            ])
+            // Update individual toggles in the UI
+            try { if (feedToggle) feedToggle.checked = newValue } catch (e) { }
+            try { if (asideToggle) asideToggle.checked = newValue } catch (e) { }
+        } catch (error) {
+            console.error('Error updating settings:', error)
+        }
+    })
 }
 
 // Create YouTube-specific controls
-function createYouTubeControls (settings) {
+function createYouTubeControls(settings) {
     const container = document.getElementById('controls-container')
 
     // Feed toggle
@@ -199,7 +249,7 @@ function createYouTubeControls (settings) {
 }
 
 // Create a toggle control
-function createToggleControl (settingKey, label, defaultValue, description) {
+function createToggleControl(settingKey, label, defaultValue, description) {
     const controlDiv = document.createElement('div')
     controlDiv.className = 'control-item'
 
@@ -246,7 +296,7 @@ function createToggleControl (settingKey, label, defaultValue, description) {
 }
 
 // Show message for unsupported websites
-function showUnsupportedWebsite () {
+function showUnsupportedWebsite() {
     const container = document.getElementById('controls-container')
     container.innerHTML = `
         <div class="unsupported-message">

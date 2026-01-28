@@ -66,8 +66,7 @@
                 const asideExists = document.querySelector('aside.scaffold-layout__aside[aria-label="LinkedIn News"]')
                 if (asideExists) {
                     updateAsideVisibility()
-                    obs.disconnect()
-                    console.log('[InnerPeace] LinkedIn aside observer disconnected after applying settings.')
+                    // Keep observing so we re-apply settings if LinkedIn re-renders the aside
                 }
             })
 
@@ -79,12 +78,16 @@
     }
 
     function immediateAsideCheck() {
-        setTimeout(() => {
-            const asideExists = document.querySelector('aside.scaffold-layout__aside[aria-label="LinkedIn News"]')
-            if (asideExists) {
-                updateAsideVisibility()
-            }
-        }, 1000)
+        // Run initial check and a few retries to handle slow-loading LinkedIn DOM
+        const attempts = [1000, 2000, 3500]
+        for (const delay of attempts) {
+            setTimeout(() => {
+                const asideExists = document.querySelector('aside.scaffold-layout__aside[aria-label="LinkedIn News"]')
+                if (asideExists) {
+                    updateAsideVisibility()
+                }
+            }, delay)
+        }
     }
 
     function periodicAsideCheck() {

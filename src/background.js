@@ -143,3 +143,39 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 })
 
 console.log('[InnerPeace] Background script loaded')
+
+// On install, ensure all known website settings default to `false` (hidden)
+try {
+    chrome.runtime.onInstalled.addListener(() => {
+        try {
+            // Collect all setting keys from WEBSITE_CONFIGS
+            const allSettings = Object.values(WEBSITE_CONFIGS)
+                .map(cfg => cfg.settings || [])
+                .reduce((acc, arr) => acc.concat(arr), [])
+                .filter(Boolean)
+            if (allSettings.length === 0) return
+
+            chrome.storage.sync.get(allSettings, (result) => {
+                try {
+                    const toSet = {}
+                    for (const key of allSettings) {
+                        if (typeof result[key] === 'undefined') {
+                            toSet[key] = false
+                        }
+                    }
+                    if (Object.keys(toSet).length > 0) {
+                        chrome.storage.sync.set(toSet, () => {
+                            console.log('[InnerPeace] Initialized default settings on install:', toSet)
+                        })
+                    }
+                } catch (err) {
+                    console.error('[InnerPeace] Error initializing defaults on install:', err)
+                }
+            })
+        } catch (err) {
+            console.error('[InnerPeace] onInstalled handler error:', err)
+        }
+    })
+} catch (err) {
+    console.error('[InnerPeace] Error registering onInstalled listener:', err)
+}
