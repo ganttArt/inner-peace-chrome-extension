@@ -155,29 +155,29 @@ async function setupWebsiteControls() {
 // Create LinkedIn-specific controls
 function createLinkedInControls(settings) {
     const container = document.getElementById('controls-container')
-    // Master toggle (controls both feed and news sidebar)
-    const masterDiv = document.createElement('div')
-    masterDiv.className = 'control-item'
+    // Primary toggle (controls both feed and news sidebar)
+    const primaryDiv = document.createElement('div')
+    primaryDiv.className = 'control-item'
 
-    const masterLabel = document.createElement('label')
-    masterLabel.className = 'control-label'
-    masterLabel.textContent = 'Show LinkedIn Content'
+    const primaryLabel = document.createElement('label')
+    primaryLabel.className = 'control-label'
+    primaryLabel.textContent = 'Show LinkedIn Content'
 
-    const masterToggle = document.createElement('input')
-    masterToggle.type = 'checkbox'
+    const primaryToggle = document.createElement('input')
+    primaryToggle.type = 'checkbox'
     const feedDefault = settings.linkedin_showFeed || false
     const asideDefault = settings.linkedin_showAside || false
-    masterToggle.checked = feedDefault && asideDefault
-    masterToggle.className = 'control-toggle'
+    primaryToggle.checked = feedDefault && asideDefault
+    primaryToggle.className = 'control-toggle'
 
-    const masterDescription = document.createElement('p')
-    masterDescription.className = 'control-description'
-    masterDescription.textContent = 'Toggle both the main LinkedIn feed and the news sidebar'
+    const primaryDescription = document.createElement('p')
+    primaryDescription.className = 'control-description'
+    primaryDescription.textContent = 'Toggle both the main LinkedIn feed and the news sidebar'
 
-    masterDiv.appendChild(masterLabel)
-    masterDiv.appendChild(masterToggle)
-    masterDiv.appendChild(masterDescription)
-    container.appendChild(masterDiv)
+    primaryDiv.appendChild(primaryLabel)
+    primaryDiv.appendChild(primaryToggle)
+    primaryDiv.appendChild(primaryDescription)
+    container.appendChild(primaryDiv)
 
     // Feed toggle
     const feedControl = createToggleControl(
@@ -197,13 +197,13 @@ function createLinkedInControls(settings) {
     )
     container.appendChild(asideControl)
 
-    // Wire master toggle to update both settings and sync UI
+    // Wire primary toggle to update both settings and sync UI
     // Get the checkbox inputs from the created controls
     const feedToggle = feedControl.querySelector && feedControl.querySelector('input[type="checkbox"]')
     const asideToggle = asideControl.querySelector && asideControl.querySelector('input[type="checkbox"]')
 
-    masterToggle.addEventListener('change', async () => {
-        const newValue = masterToggle.checked
+    primaryToggle.addEventListener('change', async () => {
+        const newValue = primaryToggle.checked
         const settingsToSet = { linkedin_showFeed: newValue, linkedin_showAside: newValue }
         try {
             await Promise.race([
@@ -229,23 +229,48 @@ function createLinkedInControls(settings) {
 function createYouTubeControls(settings) {
     const container = document.getElementById('controls-container')
 
-    // Feed toggle
-    const feedControl = createToggleControl(
-        'youtube_showFeed',
-        'Show Home Feed',
-        settings.youtube_showFeed || false,
-        'Toggle the YouTube home page video feed visibility'
-    )
-    container.appendChild(feedControl)
+    // Primary toggle (controls both home feed and right panel)
+    const primaryDiv = document.createElement('div')
+    primaryDiv.className = 'control-item'
 
-    // Right panel toggle
-    const rightPanelControl = createToggleControl(
-        'youtube_showRightPanel',
-        'Show Video Suggestions',
-        settings.youtube_showRightPanel || false,
-        'Toggle the right panel and additional video content sections when watching videos'
-    )
-    container.appendChild(rightPanelControl)
+    const primaryLabel = document.createElement('label')
+    primaryLabel.className = 'control-label'
+    primaryLabel.textContent = 'Show YouTube Content'
+
+    const primaryToggle = document.createElement('input')
+    primaryToggle.type = 'checkbox'
+    const feedDefault = settings.youtube_showFeed || false
+    const rightDefault = settings.youtube_showRightPanel || false
+    primaryToggle.checked = feedDefault && rightDefault
+    primaryToggle.className = 'control-toggle'
+
+    const primaryDescription = document.createElement('p')
+    primaryDescription.className = 'control-description'
+    primaryDescription.textContent = 'Toggle both the YouTube home feed and video suggestions'
+
+    primaryDiv.appendChild(primaryLabel)
+    primaryDiv.appendChild(primaryToggle)
+    primaryDiv.appendChild(primaryDescription)
+    container.appendChild(primaryDiv)
+    // Wire primary toggle to update both settings
+    primaryToggle.addEventListener('change', async () => {
+        const newValue = primaryToggle.checked
+        const settingsToSet = { youtube_showFeed: newValue, youtube_showRightPanel: newValue }
+        try {
+            await Promise.race([
+                chrome.runtime.sendMessage({
+                    action: 'updateWebsiteSettings',
+                    website: currentWebsite,
+                    settings: settingsToSet
+                }),
+                new Promise((_resolve, reject) =>
+                    setTimeout(() => reject(new Error('Settings update timeout')), 3000)
+                )
+            ])
+        } catch (error) {
+            console.error('Error updating settings:', error)
+        }
+    })
 }
 
 // Create a toggle control
