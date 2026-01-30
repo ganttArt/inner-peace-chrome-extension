@@ -11,6 +11,9 @@ tests/test-output/test-results/
 tests/test-output/playwright-report/
 playwright/.cache/
 
+# Build output
+dist-firefox/
+
 # Environment variables
 .env
 .env.local

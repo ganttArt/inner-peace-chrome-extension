@@ -102,13 +102,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                             try {
                                 if (tabs && tabs[0] && website && WEBSITE_CONFIGS[website]) {
                                     // Only send message if we're on a supported website
-                                    chrome.tabs.sendMessage(tabs[0].id, {
-                                        action: 'updateSettings',
-                                        settings
-                                    }).catch((error) => {
-                                        // Content script might not be loaded, which is normal for unsupported sites
-                                        // could not send message to content script
-                                    })
+                                    // Attempt to send a message to the content script; log any error.
+                                    try {
+                                        const sendResult = chrome.tabs.sendMessage(tabs[0].id, {
+                                            action: 'updateSettings',
+                                            settings
+                                        })
+                                        // If the API returns a promise, attach a rejection handler
+                                        if (sendResult && typeof sendResult.catch === 'function') {
+                                            sendResult.catch((err) => {
+                                                console.debug('[InnerPeace] sendMessage rejected (content script may be absent):', err)
+                                            })
+                                        }
+                                    } catch (err) {
+                                        // Likely the content script isn't loaded; log at debug level
+                                        console.debug('[InnerPeace] sendMessage threw (content script may be absent):', err)
+                                    }
                                 }
                             } catch (error) {
                                 console.error('[InnerPeace] Error in tabs query callback for message sending:', error)

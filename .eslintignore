@@ -1,0 +1,4 @@
+# Ignore generated build output and test artifacts
+dist-firefox/
+tests/test-output/
+node_modules/

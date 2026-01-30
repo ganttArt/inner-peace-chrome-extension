@@ -207,7 +207,7 @@
         updateAsideVisibility,
         setupAsideObserver,
         immediateAsideCheck,
-        periodicAsideCheck
-        , startInitialEnforcer
+        periodicAsideCheck,
+        startInitialEnforcer
     }
 })()

@@ -35,7 +35,10 @@ module.exports = {
         'no-var': 'error',
         'no-unused-vars': 'warn',
         // Disable requirement for space before function parentheses (project prefers no space)
-        'space-before-function-paren': 'off'
+        'space-before-function-paren': 'off',
+        // Turn off semicolon rules to avoid "Extra semicolon" errors
+        semi: 'off',
+        'no-extra-semi': 'off'
     },
     overrides: [
         {

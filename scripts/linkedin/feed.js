@@ -228,7 +228,7 @@
         updateFeedVisibility,
         setupFeedObserver,
         immediateFeedCheck,
-        periodicFeedCheck
-        , startInitialEnforcer
+        periodicFeedCheck,
+        startInitialEnforcer
     }
 })()

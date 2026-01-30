@@ -1,6 +1,8 @@
-# InnerPeace Chrome Extension
+# InnerPeace Browser Extension
 
-A Chrome extension that helps you maintain focus by toggling visibility of distracting elements on various websites.
+A browser extension that helps you maintain focus by toggling visibility of distracting elements on various websites.
+
+**Available for Chrome and Firefox!** 🎉
 
 ## Features
 
@@ -161,11 +163,17 @@ function createYouTubeControls(settings) {
 
 ## Installation
 
+### Chrome
+
 1. Clone or download this repository
 2. Open Chrome and go to `chrome://extensions/`
 3. Enable "Developer mode" in the top right
 4. Click "Load unpacked" and select the extension folder
 5. The extension icon should appear in your toolbar
+
+### Firefox
+
+See [FIREFOX.md](FIREFOX.md).
 
 ## Usage
 

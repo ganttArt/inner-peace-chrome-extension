@@ -13,6 +13,8 @@
         "watch:unit": "node scripts/watch-tests.js unit",
         "watch:e2e": "node scripts/watch-tests.js e2e",
         "build": "echo 'No build step required for Chrome extension'",
+        "build:firefox": "node scripts/build-firefox.js",
+        "package:firefox": "npm run build:firefox && (cd dist-firefox && zip -r ../innerpeace-firefox.xpi *)",
         "dev": "npm run watch",
         "lint": "eslint . --ext .js",
         "lint:fix": "eslint . --ext .js --fix"
