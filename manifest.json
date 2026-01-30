@@ -22,7 +22,7 @@
     "content_scripts": [
         {
             "matches": [
-                "*://www.linkedin.com/*"
+                "*://*.linkedin.com/*"
             ],
             "js": [
                 "scripts/utils.js",
@@ -30,7 +30,7 @@
                 "scripts/linkedin/aside.js",
                 "scripts/linkedin/index.js"
             ],
-            "run_at": "document_idle"
+            "run_at": "document_start"
         },
         {
             "matches": [

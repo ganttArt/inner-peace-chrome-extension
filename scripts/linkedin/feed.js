@@ -37,7 +37,118 @@
     function toggleFeedVisibility(visible) {
         const feed = getFeedElement()
         if (feed) {
-            window.InnerPeaceUtils?.setDisplay(feed, visible)
+            // Use CSS-based hiding to survive re-renders and race conditions
+            try {
+                if (visible) {
+                    removeHideStyle()
+                    window.InnerPeaceUtils?.setDisplay(feed, true)
+                } else {
+                    ensureHideStyle()
+                    window.InnerPeaceUtils?.setDisplay(feed, false)
+                }
+            } catch (e) {
+                console.error('Error toggling feed visibility:', e)
+            }
+            // Track manual visibility changes from the popup
+            try {
+                window.LinkedInFeed._manualVisible = !!visible
+                // If the user made the feed visible, stop the initial enforcer and remove styles
+                if (visible) {
+                    if (window.LinkedInFeed._initialEnforcerTimer) {
+                        clearInterval(window.LinkedInFeed._initialEnforcerTimer)
+                        window.LinkedInFeed._initialEnforcerTimer = null
+                    }
+                    removeHideStyle()
+                    // stopped initial feed enforcer due to manual visibility
+                }
+            } catch (e) {
+                console.error('Error setting manual visibility flag for feed:', e)
+            }
+        }
+    }
+
+    const STYLE_ID = 'innerpeace-linkedin-feed-style'
+    const HIDE_SELECTORS = [
+        '[data-testid="mainFeed"]',
+        '[data-view-name="news-module"]',
+        '[data-test-id="feed-container"]',
+        '[data-test-id="main-feed"]',
+        '[data-test-id="feed"]',
+        '[data-id="feed-container"]',
+        '.scaffold-finite-scroll'
+    ]
+
+    function ensureHideStyle() {
+        try {
+            if (document.getElementById(STYLE_ID)) return
+            const style = document.createElement('style')
+            style.id = STYLE_ID
+            style.textContent = `${HIDE_SELECTORS.join(', ')} { display: none !important; visibility: hidden !important; opacity: 0 !important; }`
+            document.documentElement.appendChild(style)
+            // applied feed hide stylesheet
+        } catch (e) {
+            console.error('Error applying feed hide stylesheet:', e)
+        }
+    }
+
+    function removeHideStyle() {
+        try {
+            const s = document.getElementById(STYLE_ID)
+            if (s && s.parentNode) s.parentNode.removeChild(s)
+        } catch (e) {
+            console.error('Error removing feed hide stylesheet:', e)
+        }
+    }
+
+    // Initial enforcer: every 1s for first 15s try to hide the feed
+    function startInitialEnforcer() {
+        try {
+            // If already running, reset
+            if (window.LinkedInFeed._initialEnforcerTimer) {
+                clearInterval(window.LinkedInFeed._initialEnforcerTimer)
+                window.LinkedInFeed._initialEnforcerTimer = null
+            }
+
+            // If user has already manually requested visibility, don't start
+            if (window.LinkedInFeed._manualVisible) return
+
+            const MAX_SECONDS = 15
+            let seconds = 0
+
+            window.LinkedInFeed._initialEnforcerTimer = setInterval(() => {
+                try {
+                    seconds += 1
+                    // If user manually set visible, stop enforcing
+                    if (window.LinkedInFeed._manualVisible) {
+                        clearInterval(window.LinkedInFeed._initialEnforcerTimer)
+                        window.LinkedInFeed._initialEnforcerTimer = null
+                        return
+                    }
+
+                    // Apply CSS-based hiding so it persists across re-renders
+                    ensureHideStyle()
+
+                    // Also try direct hiding if the element exists
+                    const feed = getFeedElement()
+                    if (feed) {
+                        window.InnerPeaceUtils?.setDisplay(feed, false)
+                    }
+
+                    if (seconds >= MAX_SECONDS) {
+                        clearInterval(window.LinkedInFeed._initialEnforcerTimer)
+                        window.LinkedInFeed._initialEnforcerTimer = null
+                        // initial feed enforcer completed
+                    }
+                } catch (err) {
+                    console.error('Error in initial feed enforcer:', err)
+                    if (window.LinkedInFeed._initialEnforcerTimer) {
+                        clearInterval(window.LinkedInFeed._initialEnforcerTimer)
+                        window.LinkedInFeed._initialEnforcerTimer = null
+                    }
+                }
+            }, 1000)
+        } catch (err) {
+            console.error('Could not start initial feed enforcer:', err)
         }
     }
 
@@ -54,7 +165,6 @@
                 try {
                     const showFeed = typeof result.linkedin_showFeed !== 'undefined' ? result.linkedin_showFeed : false
                     toggleFeedVisibility(showFeed)
-                    console.log('[InnerPeace] Applied LinkedIn feed setting:', showFeed)
                 } catch (e) {
                     console.error('Error inside storage callback:', e)
                 }
@@ -76,7 +186,7 @@
             })
 
             observer.observe(document.body, { childList: true, subtree: true })
-            console.log('[InnerPeace] LinkedIn feed observer set up.')
+            // feed observer set up
         } catch (err) {
             console.error('Error setting up LinkedIn feed MutationObserver:', err)
         }
@@ -119,5 +229,6 @@
         setupFeedObserver,
         immediateFeedCheck,
         periodicFeedCheck
+        , startInitialEnforcer
     }
 })()

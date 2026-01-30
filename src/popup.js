@@ -7,21 +7,51 @@ let currentConfig = null
 // Initialize the popup
 async function initializePopup() {
     try {
-        console.log('[InnerPeace] Initializing popup...')
+        // initializing popup
 
         // Check if we're in the extension context
         if (!chrome?.runtime?.id) {
             throw new Error('Not in extension context')
         }
+        // Attempt quick detection from the active tab first (more reliable on first visit)
+        let response = null
+        try {
+            const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
+            if (tabs && tabs[0] && tabs[0].url) {
+                const url = new URL(tabs[0].url)
+                const hostname = url.hostname
+                if (hostname.includes('linkedin.com')) {
+                    response = {
+                        website: 'linkedin.com',
+                        config: {
+                            script: 'scripts/linkedin.js',
+                            settings: ['linkedin_showFeed', 'linkedin_showAside']
+                        }
+                    }
+                } else if (hostname.includes('youtube.com')) {
+                    response = {
+                        website: 'youtube.com',
+                        config: {
+                            script: 'scripts/youtube.js',
+                            settings: ['youtube_showFeed', 'youtube_showRightPanel']
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            console.warn('[InnerPeace] Active-tab detection failed, falling back to background:', err)
+        }
 
-        // Get current website from background script
-        const response = await Promise.race([
-            chrome.runtime.sendMessage({ action: 'getCurrentWebsite' }),
-            new Promise((_resolve, reject) =>
-                setTimeout(() => reject(new Error('Background script timeout')), 3000)
-            )
-        ])
-        console.log('[InnerPeace] Background response:', response)
+        // If quick detection didn't yield a result, ask the background script
+        if (!response) {
+            response = await Promise.race([
+                chrome.runtime.sendMessage({ action: 'getCurrentWebsite' }),
+                new Promise((_resolve, reject) =>
+                    setTimeout(() => reject(new Error('Background script timeout')), 3000)
+                )
+            ])
+        }
+        // background response received
 
         // Handle undefined or null response
         if (!response) {
@@ -31,13 +61,12 @@ async function initializePopup() {
         currentWebsite = response.website
         currentConfig = response.config
 
-        console.log('[InnerPeace] Current website:', currentWebsite)
-        console.log('[InnerPeace] Current config:', currentConfig)
+        // current website and config set
 
         if (currentWebsite && currentConfig) {
             setupWebsiteControls()
         } else {
-            console.log('[InnerPeace] Website not supported or config missing')
+            // website not supported or config missing
             // Try to get the current tab URL directly as a fallback
             await tryFallbackDetection()
         }
@@ -51,7 +80,7 @@ async function initializePopup() {
 // Fallback detection method
 async function tryFallbackDetection() {
     try {
-        console.log('[InnerPeace] Trying fallback detection...')
+        // trying fallback detection
 
         // Check if we're in the extension context
         if (!chrome?.runtime?.id) {
@@ -61,12 +90,12 @@ async function tryFallbackDetection() {
         // Get the current tab directly
         const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
         if (tabs[0] && tabs[0].url) {
-            console.log('[InnerPeace] Current tab URL:', tabs[0].url)
+            // current tab URL
 
             // Parse the URL manually
             const url = new URL(tabs[0].url)
             const hostname = url.hostname
-            console.log('[InnerPeace] Parsed hostname:', hostname)
+            // parsed hostname
 
             // Check if it's a supported website
             // The following log and setupWebsiteControls calls are intentionally
@@ -77,7 +106,7 @@ async function tryFallbackDetection() {
                     script: 'scripts/youtube.js',
                     settings: ['youtube_showFeed', 'youtube_showRightPanel']
                 }
-                console.log(`[InnerPeace] Fallback detected ${currentWebsite}`)
+                // fallback detected
                 setupWebsiteControls()
                 return
             } else if (hostname.includes('linkedin.com')) {
@@ -86,7 +115,7 @@ async function tryFallbackDetection() {
                     script: 'scripts/linkedin.js',
                     settings: ['linkedin_showFeed', 'linkedin_showAside']
                 }
-                console.log(`[InnerPeace] Fallback detected ${currentWebsite}`)
+                // fallback detected
                 setupWebsiteControls()
                 return
             }
@@ -138,7 +167,7 @@ async function setupWebsiteControls() {
         }
     }
 
-    console.log('[InnerPeace] Retrieved settings:', settings)
+    // retrieved settings
 
     // Create controls based on website configuration
     if (currentWebsite === 'linkedin.com') {

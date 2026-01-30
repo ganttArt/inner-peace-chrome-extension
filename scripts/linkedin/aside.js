@@ -33,7 +33,55 @@
     function toggleAsideVisibility(visible) {
         const aside = getAsideElement()
         if (aside) {
-            aside.style.display = visible ? '' : 'none'
+            try {
+                if (visible) {
+                    removeAsideHideStyle()
+                    aside.style.display = ''
+                } else {
+                    ensureAsideHideStyle()
+                    aside.style.display = 'none'
+                }
+            } catch (e) {
+                console.error('Error toggling aside visibility:', e)
+            }
+            try {
+                window.LinkedInAside._manualVisible = !!visible
+                if (visible && window.LinkedInAside._initialEnforcerTimer) {
+                    clearInterval(window.LinkedInAside._initialEnforcerTimer)
+                    window.LinkedInAside._initialEnforcerTimer = null
+                }
+                if (visible) removeAsideHideStyle()
+            } catch (e) {
+                console.error('Error setting manual visibility flag for aside:', e)
+            }
+        }
+    }
+
+    const ASIDE_STYLE_ID = 'innerpeace-linkedin-aside-style'
+    const ASIDE_HIDE_SELECTORS = [
+        'aside.scaffold-layout__aside[aria-label="LinkedIn News"]',
+        '[data-view-name="news-module"]'
+    ]
+
+    function ensureAsideHideStyle() {
+        try {
+            if (document.getElementById(ASIDE_STYLE_ID)) return
+            const style = document.createElement('style')
+            style.id = ASIDE_STYLE_ID
+            style.textContent = `${ASIDE_HIDE_SELECTORS.join(', ')} { display: none !important; visibility: hidden !important; opacity: 0 !important; }`
+            document.documentElement.appendChild(style)
+            // applied aside hide stylesheet
+        } catch (e) {
+            console.error('Error applying aside hide stylesheet:', e)
+        }
+    }
+
+    function removeAsideHideStyle() {
+        try {
+            const s = document.getElementById(ASIDE_STYLE_ID)
+            if (s && s.parentNode) s.parentNode.removeChild(s)
+        } catch (e) {
+            console.error('Error removing aside hide stylesheet:', e)
         }
     }
 
@@ -50,7 +98,6 @@
                 try {
                     const showAside = typeof result.linkedin_showAside !== 'undefined' ? result.linkedin_showAside : false
                     toggleAsideVisibility(showAside)
-                    console.log('[InnerPeace] Applied LinkedIn aside setting:', showAside)
                 } catch (e) {
                     console.error('Error inside storage callback:', e)
                 }
@@ -71,7 +118,7 @@
             })
 
             observer.observe(document.body, { childList: true, subtree: true })
-            console.log('[InnerPeace] LinkedIn aside observer set up.')
+            // aside observer set up
         } catch (err) {
             console.error('Error setting up LinkedIn aside MutationObserver:', err)
         }
@@ -107,6 +154,53 @@
         }, 1500)
     }
 
+    // Initial enforcer: every 1s for first 15s try to hide the aside
+    function startInitialEnforcer() {
+        try {
+            if (window.LinkedInAside._initialEnforcerTimer) {
+                clearInterval(window.LinkedInAside._initialEnforcerTimer)
+                window.LinkedInAside._initialEnforcerTimer = null
+            }
+
+            if (window.LinkedInAside._manualVisible) return
+
+            const MAX_SECONDS = 15
+            let seconds = 0
+
+            window.LinkedInAside._initialEnforcerTimer = setInterval(() => {
+                try {
+                    seconds += 1
+                    if (window.LinkedInAside._manualVisible) {
+                        clearInterval(window.LinkedInAside._initialEnforcerTimer)
+                        window.LinkedInAside._initialEnforcerTimer = null
+                        return
+                    }
+
+                    // Apply CSS-based hiding so it persists across re-renders
+                    ensureAsideHideStyle()
+                    const aside = getAsideElement()
+                    if (aside) {
+                        aside.style.display = 'none'
+                    }
+
+                    if (seconds >= MAX_SECONDS) {
+                        clearInterval(window.LinkedInAside._initialEnforcerTimer)
+                        window.LinkedInAside._initialEnforcerTimer = null
+                        // initial aside enforcer completed
+                    }
+                } catch (err) {
+                    console.error('Error in initial aside enforcer:', err)
+                    if (window.LinkedInAside._initialEnforcerTimer) {
+                        clearInterval(window.LinkedInAside._initialEnforcerTimer)
+                        window.LinkedInAside._initialEnforcerTimer = null
+                    }
+                }
+            }, 1000)
+        } catch (err) {
+            console.error('Could not start initial aside enforcer:', err)
+        }
+    }
+
     // Export to global LinkedIn object
     window.LinkedInAside = {
         toggleAsideVisibility,
@@ -114,5 +208,6 @@
         setupAsideObserver,
         immediateAsideCheck,
         periodicAsideCheck
+        , startInitialEnforcer
     }
 })()

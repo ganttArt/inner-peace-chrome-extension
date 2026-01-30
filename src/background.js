@@ -22,13 +22,13 @@ const WEBSITE_CONFIGS = {
 function getWebsiteFromUrl(url) {
     try {
         const hostname = new URL(url).hostname
-        console.log('[InnerPeace] Parsed hostname:', hostname)
+        // parsed hostname
 
         const website = Object.keys(WEBSITE_CONFIGS).find(domain =>
             hostname.includes(domain)
         )
 
-        console.log('[InnerPeace] Detected website:', website)
+        // detected website
         return website
     } catch (error) {
         console.error('Error parsing URL:', error)
@@ -38,22 +38,22 @@ function getWebsiteFromUrl(url) {
 
 // Handle messages from popup and content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log('[InnerPeace] Background received message:', message)
+    // background received message
 
     if (message.action === 'getCurrentWebsite') {
         // Get current active tab to determine website
         try {
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 try {
-                    console.log('[InnerPeace] Current tab:', tabs[0])
+                    // current tab info
 
                     if (tabs && tabs[0]) {
                         const website = getWebsiteFromUrl(tabs[0].url)
                         const config = WEBSITE_CONFIGS[website]
-                        console.log('[InnerPeace] Sending response:', { website, config })
+                        // sending response with website config
                         sendResponse({ website, config })
                     } else {
-                        console.log('[InnerPeace] No active tab found')
+                        // no active tab found
                         sendResponse({ website: null, config: null })
                     }
                 } catch (error) {
@@ -107,7 +107,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                                         settings
                                     }).catch((error) => {
                                         // Content script might not be loaded, which is normal for unsupported sites
-                                        console.log('[InnerPeace] Could not send message to content script:', error.message)
+                                        // could not send message to content script
                                     })
                                 }
                             } catch (error) {
@@ -129,6 +129,54 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
         return true
     }
+
+    if (message.action === 'requestReload') {
+        try {
+            // Rate-limit reloads per tab to avoid loops
+            if (!globalThis.__InnerPeaceReloadTracker) globalThis.__InnerPeaceReloadTracker = {}
+            const tracker = globalThis.__InnerPeaceReloadTracker
+
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                try {
+                    if (!tabs || !tabs[0]) {
+                        sendResponse({ success: false, error: 'no-active-tab' })
+                        return
+                    }
+                    const tab = tabs[0]
+                    const tabId = tab.id
+                    const last = tracker[tabId] || 0
+                    const now = Date.now()
+                    // Only allow a reload once per 60 seconds per tab
+                    if (now - last < 60000) {
+                        sendResponse({ success: false, reason: 'recently-reloaded' })
+                        return
+                    }
+                    // Ensure it's a LinkedIn URL before reloading
+                    const website = getWebsiteFromUrl(tab.url)
+                    if (website !== 'linkedin.com') {
+                        sendResponse({ success: false, reason: 'not-linkedin' })
+                        return
+                    }
+                    tracker[tabId] = now
+                    try {
+                        chrome.tabs.reload(tabId, {}, () => {
+                            sendResponse({ success: true })
+                        })
+                    } catch (e) {
+                        console.error('[InnerPeace] Error reloading tab:', e)
+                        sendResponse({ success: false, error: e && e.message })
+                    }
+                } catch (err) {
+                    console.error('[InnerPeace] Error in requestReload tabs query:', err)
+                    sendResponse({ success: false, error: err && err.message })
+                }
+            })
+        } catch (err) {
+            console.error('[InnerPeace] Error handling requestReload message:', err)
+            try { sendResponse({ success: false, error: err && err.message }) } catch (e) { }
+        }
+        return true
+    }
 })
 
 // Handle tab updates to inject scripts for new websites
@@ -136,13 +184,13 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (changeInfo.status === 'complete' && tab.url) {
         const website = getWebsiteFromUrl(tab.url)
         if (website && WEBSITE_CONFIGS[website]) {
-            console.log(`[InnerPeace] Detected ${website}, ensuring script is injected`)
+            // detected website on tab update
             // The manifest will handle the injection, but we can add additional logic here if needed
         }
     }
 })
 
-console.log('[InnerPeace] Background script loaded')
+// background script loaded
 
 // On install, ensure all known website settings default to `false` (hidden)
 try {
@@ -165,7 +213,7 @@ try {
                     }
                     if (Object.keys(toSet).length > 0) {
                         chrome.storage.sync.set(toSet, () => {
-                            console.log('[InnerPeace] Initialized default settings on install:', toSet)
+                            // initialized default settings on install
                         })
                     }
                 } catch (err) {
